@@ -17,7 +17,7 @@ With this you can generate Alertmanager notifications based on log entries
 | ELASTICSEARCH_USER     | Elastic User                 | elastic                                               |
 | ELASTICSEARCH_PASSWORD | Elastic Pass                 | changeme                                              |
 | ELASTICSEARCH_INDEX    | Elastic Index                | log-syslog-serverlog-kubernetes                       |
-| MATCHES                | Comma seperated search terms | ruok,error,WARN                                       |
+| MATCHES                | Comma seperated regexp       | ruok,[Ee]rror                                         |
 | FREQUENCY              | Frequency to check           | 20s                                                   |
 | VERIFY_TLS             | Skip TLS validation          | false                                                 |
 
