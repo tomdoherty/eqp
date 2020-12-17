@@ -16,7 +16,7 @@ With this you can generate Alertmanager notifications based on log entries
 | ELASTICSEARCH_HOST     | Elastic URL                  | https://elasticsearch-es-http.elastic-system.svc:9200 |
 | ELASTICSEARCH_USER     | Elastic User                 | elastic                                               |
 | ELASTICSEARCH_PASSWORD | Elastic Pass                 | changeme                                              |
-| ELASTICSEARCH_INDEX    | Elastic Index                | log-syslog-serverlog-kubernetes-*                     |
+| ELASTICSEARCH_INDEX    | Elastic Index                | log-syslog-serverlog-kubernetes                       |
 | MATCHES                | Comma seperated search terms | ruok,error,WARN                                       |
 | FREQUENCY              | Frequency to check           | 20s                                                   |
 | VERIFY_TLS             | Skip TLS validation          | false                                                 |
@@ -27,6 +27,28 @@ the provided manifest as follows:
 
 ```shell
 kubectl create secret generic elastic-user --from-literal password=changeme
+```
+
+Here's a PrometheusRule that triggers when a pattern is matched
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: eqp-rules
+  namespace: kube-system
+spec:
+  groups:
+  - name: eqp
+    rules:
+    - alert: LogAlert
+      expr: eqp_log_scrape_matches > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: Pod {{ $labels.pod_name }} is matching pattern {{ $labels.pattern }}
+        description: Check {{ $labels.pod_name }} in namespace {{ $labels.namespace }}
 ```
 
 The below metrics are provided:
