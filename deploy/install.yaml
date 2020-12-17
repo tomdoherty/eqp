@@ -1,0 +1,101 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: eqp
+  name: eqp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eqp
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '2112'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: eqp
+    spec:
+      containers:
+      - name: eqp
+        image: tomdoherty/eqp:v0.0.5
+        env:
+        - name: ELASTICSEARCH_HOST
+          value: "https://elasticsearch-es-http.elastic-system.svc:9200"
+        - name: ELASTICSEARCH_USER
+          value: "elastic"
+        - name: ELASTICSEARCH_INDEX
+          value: "log-syslog-serverlog-kubernetes-*"
+        - name: MATCHES
+          value: "ruok,error,warn"
+        - name: FREQUENCY
+          value: "20s"
+        - name: VERIFY_TLS
+          value: "false"
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elastic-user
+              key: password
+        ports:
+        - containerPort: 2112
+          name: metrics
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 2112
+            scheme: HTTP
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 2112
+            scheme: HTTP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eqp-metrics
+  labels:
+    app: eqp
+spec:
+  type: ClusterIP
+  selector:
+    app: eqp
+  ports:
+  - name: metrics
+    port: 2112
+    protocol: TCP
+    targetPort: 2112
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: eqp-metrics
+  labels:
+    app: eqp
+spec:
+  jobLabel: "app.kubernetes.io/name"
+  selector:
+    matchLabels:
+      app: eqp
+  namespaceSelector:
+    matchNames:
+    - default
+  endpoints:
+  - port: metrics
+
+---
+apiVersion: v1
+data:
+  password: Y2hhbmdlbWU=
+kind: Secret
+metadata:
+  name: elastic-user
