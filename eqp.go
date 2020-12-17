@@ -73,9 +73,9 @@ func Run() {
     "bool": {
       "must": [
         {
-          "match": {
+          "regexp": {
             "log": {
-              "query": "{{ .Pattern }}"
+              "value": "{{ .Pattern }}"
             }
           }
         },
