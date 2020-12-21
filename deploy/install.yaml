@@ -5,6 +5,7 @@ metadata:
   labels:
     app: eqp
   name: eqp
+  namespace: kube-system
 spec:
   replicas: 1
   selector:
@@ -20,16 +21,14 @@ spec:
     spec:
       containers:
       - name: eqp
-        image: tomdoherty/eqp:v0.0.5
+        image: tomdoherty/eqp:v0.0.6
         env:
         - name: ELASTICSEARCH_HOST
           value: "https://elasticsearch-es-http.elastic-system.svc:9200"
         - name: ELASTICSEARCH_USER
           value: "elastic"
-        - name: ELASTICSEARCH_INDEX
-          value: "log-syslog-serverlog-kubernetes-*"
-        - name: MATCHES
-          value: "ruok,error,warn"
+        - name: CONFIG_FILE
+          value: "/matchers.yaml"
         - name: FREQUENCY
           value: "20s"
         - name: VERIFY_TLS
@@ -39,6 +38,11 @@ spec:
             secretKeyRef:
               name: elastic-user
               key: password
+
+        volumeMounts:
+        - name: config
+          mountPath: /matchers.yaml
+
         ports:
         - containerPort: 2112
           name: metrics
@@ -56,12 +60,35 @@ spec:
             path: /metrics
             port: 2112
             scheme: HTTP
+    volumes:
+    - name: config
+      configMap:
+        name: eqp-config
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: eqp-config
+  namespace: kube-system
+data:
+  matchers.yaml: |
+    matches:
+    - name: ErrorMessage
+      pattern: .*error.*
+      type: regexp
+      index: log-syslog-serverlog-kubernetes-*
+    - name: WarnMessage
+      pattern: .*warning.*
+      type: regexp
+      index: log-syslog-serverlog-kubernetes-*
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: eqp-metrics
+  namespace: kube-system
   labels:
     app: eqp
 spec:
@@ -79,6 +106,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: eqp-metrics
+  namespace: kube-system
   labels:
     app: eqp
 spec:
@@ -91,11 +119,3 @@ spec:
     - default
   endpoints:
   - port: metrics
-
----
-apiVersion: v1
-data:
-  password: Y2hhbmdlbWU=
-kind: Secret
-metadata:
-  name: elastic-user

@@ -1,0 +1,15 @@
+url: https://elasticsearch.com.lol:9200
+username: elastic
+password: fooo
+insecure: true
+frequency: 1s
+
+matches:
+- name: ErrorMessage
+  pattern: .*error.*
+  type: regexp
+  index: log-syslog-serverlog-kubernetes*
+- name: WarnMessage
+  pattern: .*warning.*
+  type: regexp
+  index: log-syslog-serverlog-kubernetes*

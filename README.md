@@ -16,10 +16,9 @@ With this you can generate Alertmanager notifications based on log entries
 | ELASTICSEARCH_HOST     | Elastic URL                  | https://elasticsearch-es-http.elastic-system.svc:9200 |
 | ELASTICSEARCH_USER     | Elastic User                 | elastic                                               |
 | ELASTICSEARCH_PASSWORD | Elastic Pass                 | changeme                                              |
-| ELASTICSEARCH_INDEX    | Elastic Index                | log-syslog-serverlog-kubernetes                       |
-| MATCHES                | Comma seperated regexp       | ruok,[Ee]rror                                         |
 | FREQUENCY              | Frequency to check           | 20s                                                   |
 | VERIFY_TLS             | Skip TLS validation          | false                                                 |
+| CONFIG_FILE            | File to read config from     | /etc/eqp.yaml                                         |
 
 
 When running inside Kubernetes you can create a secret that works with
