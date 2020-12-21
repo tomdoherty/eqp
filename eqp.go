@@ -5,11 +5,12 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v7"
@@ -23,6 +24,7 @@ var (
 			Help: "The total number of patterns matched",
 		},
 		[]string{
+			"name",
 			"namespace",
 			"pattern",
 			"pod_name",
@@ -33,28 +35,28 @@ var (
 // Run starts the polling
 func Run() {
 	log.Println("Starting eqp")
-	esIndex := os.Getenv("ELASTICSEARCH_INDEX")
-	matches := strings.Split(os.Getenv("MATCHES"), ",")
-	seconds := os.Getenv("FREQUENCY")
-	verifyTLS := os.Getenv("VERIFY_TLS")
-	insecure := false
 
-	if verifyTLS == "false" {
-		insecure = true
+	c := Config{}
+	if err := c.loadConfig(os.Getenv("CONFIG_FILE")); err != nil {
+		log.Fatalf("Error loading config: %s", err)
 	}
 
-	prometheus.MustRegister(logScrapeErrorMatches)
+	insecure, err := strconv.ParseBool(getEnvWithDefault("VERIFY_TLS", c.Insecure))
+	if err != nil {
+		log.Fatalf("invalid value for insecure/VERIFY_TLS: %s", err)
+	}
 
 	cfg := elasticsearch.Config{
 		Addresses: []string{
-			os.Getenv("ELASTICSEARCH_HOST"),
+			getEnvWithDefault("ELASTICSEARCH_HOST", c.URL),
 		},
-		Username: os.Getenv("ELASTICSEARCH_USER"),
-		Password: os.Getenv("ELASTICSEARCH_PASSWORD"),
+		Username: getEnvWithDefault("ELASTICSEARCH_USER", c.Username),
+		Password: getEnvWithDefault("ELASTICSEARCH_PASSWORD", c.Password),
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 		},
 	}
+
 	es, err := elasticsearch.NewClient(cfg)
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)
@@ -67,7 +69,9 @@ func Run() {
 	defer res.Body.Close()
 
 	for {
-		for _, match := range matches {
+		for _, matcher := range c.Matches {
+			fmt.Println(matcher.Name)
+
 			tmpl, err := template.New("query").Parse(`{
   "query": {
     "bool": {
@@ -91,18 +95,26 @@ func Run() {
     }
   }
 }`)
-			type Match struct {
-				Pattern string
-				Seconds string
+			if err != nil {
+				log.Fatalf("error creating template: %s", err)
 			}
-			pattern := Match{match, seconds}
+			type queryTemplate struct {
+				Seconds string
+				Pattern string
+			}
+			q := queryTemplate{
+				c.Frequency,
+				matcher.Pattern,
+			}
 
 			var query bytes.Buffer
-			err = tmpl.Execute(&query, pattern)
+			if err = tmpl.Execute(&query, q); err != nil {
+				log.Fatalf("error templating query: %s", err)
+			}
 
 			res, err = es.Search(
 				es.Search.WithContext(context.Background()),
-				es.Search.WithIndex(esIndex),
+				es.Search.WithIndex(matcher.Index),
 				es.Search.WithBody(&query),
 			)
 			if err != nil {
@@ -130,13 +142,21 @@ func Run() {
 			for _, hit := range r.Hits.Hits {
 				podname := hit.Source.Kubernetes.PodName
 				namespace := hit.Source.Kubernetes.NamespaceName
-				logScrapeErrorMatches.WithLabelValues(namespace, match, podname).Set(r.Hits.Total.Value)
+				logScrapeErrorMatches.WithLabelValues(matcher.Name, namespace, matcher.Pattern, podname).Set(r.Hits.Total.Value)
 			}
 		}
-		sleep, err := time.ParseDuration(seconds)
+		sleep, err := time.ParseDuration(c.Frequency)
 		if err != nil {
-			log.Fatalf("Failed parsing FREQUENCY: %s -  %s", seconds, err)
+			log.Fatalf("Failed parsing FREQUENCY: %s -  %s", c.Frequency, err)
 		}
 		time.Sleep(sleep)
+
 	}
+}
+
+func getEnvWithDefault(env, fallback string) string {
+	if value, ok := os.LookupEnv(env); ok {
+		return value
+	}
+	return fallback
 }
