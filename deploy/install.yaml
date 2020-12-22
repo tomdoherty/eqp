@@ -21,18 +21,18 @@ spec:
     spec:
       containers:
       - name: eqp
-        image: tomdoherty/eqp:v0.0.12
+        image: tomdoherty/eqp:v0.0.14
         env:
         - name: ELASTICSEARCH_HOST
           value: "https://elasticsearch-es-http.elastic-system.svc:9200"
         - name: ELASTICSEARCH_USER
           value: "elastic"
         - name: CONFIG_FILE
-          value: "/matchers.yaml"
+          value: "/eqp/matchers.yaml"
         - name: FREQUENCY
           value: "20s"
-        - name: VERIFY_TLS
-          value: "false"
+        - name: SKIP_VERIFY_TLS
+          value: "true"
         - name: ELASTICSEARCH_PASSWORD
           valueFrom:
             secretKeyRef:

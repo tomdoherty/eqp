@@ -17,7 +17,7 @@ With this you can generate Alertmanager notifications based on log entries
 | ELASTICSEARCH_USER     | Elastic User                 | elastic                                               |
 | ELASTICSEARCH_PASSWORD | Elastic Pass                 | changeme                                              |
 | FREQUENCY              | Frequency to check           | 20s                                                   |
-| VERIFY_TLS             | Skip TLS validation          | false                                                 |
+| SKIP_VERIFY_TLS        | Skip TLS validation          | false                                                 |
 | CONFIG_FILE            | File to read config from     | /etc/eqp.yaml                                         |
 
 

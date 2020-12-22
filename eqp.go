@@ -40,7 +40,7 @@ func Run() {
 		log.Fatalf("Error loading config: %s", err)
 	}
 
-	insecure, err := strconv.ParseBool(getEnvWithDefault("VERIFY_TLS", c.Insecure))
+	insecure, err := strconv.ParseBool(getEnvWithDefault("SKIP_VERIFY_TLS", c.Insecure))
 	if err != nil {
 		log.Fatalf("invalid value for insecure/VERIFY_TLS: %s", err)
 	}
