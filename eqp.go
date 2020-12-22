@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -67,10 +66,8 @@ func Run() {
 		log.Fatalf("Error getting response: %s", err)
 	}
 	defer res.Body.Close()
-
 	for {
 		for _, matcher := range c.Matches {
-			fmt.Println(matcher.Name)
 
 			tmpl, err := template.New("query").Parse(`{
   "query": {

@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: eqp
-        image: tomdoherty/eqp:v0.0.6
+        image: tomdoherty/eqp:v0.0.12
         env:
         - name: ELASTICSEARCH_HOST
           value: "https://elasticsearch-es-http.elastic-system.svc:9200"
@@ -41,7 +41,7 @@ spec:
 
         volumeMounts:
         - name: config
-          mountPath: /matchers.yaml
+          mountPath: /eqp
 
         ports:
         - containerPort: 2112
@@ -60,10 +60,11 @@ spec:
             path: /metrics
             port: 2112
             scheme: HTTP
-    volumes:
-    - name: config
-      configMap:
-        name: eqp-config
+
+      volumes:
+      - name: config
+        configMap:
+          name: eqp-config
 
 ---
 apiVersion: v1
@@ -73,15 +74,18 @@ metadata:
   namespace: kube-system
 data:
   matchers.yaml: |
+    insecure: false
+    frequency: 20s
+
     matches:
     - name: ErrorMessage
-      pattern: .*error.*
+      pattern: .*[^.,_][Ee][Rr][Rr][Oo][Rr].*
       type: regexp
-      index: log-syslog-serverlog-kubernetes-*
+      index: log-syslog-serverlog-kubernetes*
     - name: WarnMessage
-      pattern: .*warning.*
+      pattern: .*[Ww][Aa][Rr][Nn].*
       type: regexp
-      index: log-syslog-serverlog-kubernetes-*
+      index: log-syslog-serverlog-kubernetes*
 
 ---
 apiVersion: v1

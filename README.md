@@ -28,6 +28,29 @@ the provided manifest as follows:
 kubectl create secret generic elastic-user --from-literal password=changeme
 ```
 
+## configuration
+
+an example configuration file is below. the example kubernetes
+deployment uses a ConfigMap to make this available
+
+```yaml
+url: https://elasticsearch-es-http.elastic-system.svc:9200
+username: elastic
+password: changeme
+insecure: false
+frequency: 20s
+
+matches:
+- name: ErrorMessage
+  pattern: .*[^.,_][Ee][Rr][Rr][Oo][Rr].*
+  type: regexp
+  index: log-syslog-serverlog-kubernetes*
+- name: WarnMessage
+  pattern: .*[Ww][Aa][Rr][Nn].*
+  type: regexp
+  index: log-syslog-serverlog-kubernetes*
+```
+
 Here's a PrometheusRule that triggers when a pattern is matched
 
 ```yaml
